@@ -1,0 +1,32 @@
+To do (code):
+- add loss module, incl. EMSE loss function
+- TYPES
+    - add types throughout (and change 64bit to more general)
+    - create a treatment group type (Int64 with 0 or 1 as only possible values)
+- add pruning (requires value at each node)
+- add documentation!
+- make random forest parallel
+- look into memory allocation (seems large - related to region arrays?)
+- add propensity_tree
+- min_leaf_size should refer to numbers from each group in that leaf
+- allow nodes return tau_ and y0 and y1
+- use DataFrames (or names arrays) for summary table
+- use DataFrames (or names arrays) for plotting infrastructure
+
+To do (methods)
+- continuous treatment
+- allowing the local fit to be a polynomial of degree M (relation to MARS?)
+- allowing the local fit to be a polynomial of degree max(M-depth,1)
+- bayesian regularisation?
+
+Done:
+- create a final "tree" object that doesn't keep region indices (tick)
+- add honesty (tick)
+- rename fit to learn_tree (or similar)
+- add random forests
+- add ability to plot tree (much progress, return later)
+
+Code:
+- appending _ indicates an estimate
+
+Other:
