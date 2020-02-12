@@ -5,15 +5,15 @@ node :
 Node object for constructing tree
 """
 mutable struct Node
-    id          :: Int64
-    feature     :: Int64
-    threshold   :: Number  # should be float64
-    l           :: Any  # should be Node or Int64 or Float64
-    r           :: Any  # should be Node or Int64 or Float64
-    region      :: Union{Array{Int64,1},Nothing}
-    depth       :: Int64
-    is_leaf     :: Bool
-    value       :: Any  # return value when a leaf
+    id              :: Int64
+    feature         :: Int64
+    threshold       :: Number  # should be float64
+    l               :: Any  # should be Node or Int64 or Float64
+    r               :: Any  # should be Node or Int64 or Float64
+    region          :: Union{Array{Int64,1},Nothing}
+    depth           :: Int64
+    is_leaf         :: Bool
+    value           :: Any  # return value when a leaf
 
     function Node(region,depth)
         node = new()
@@ -28,14 +28,18 @@ CausalTree :
 Causal tree object
 """
 struct Tree
-    tree            ::  Node
-    n_features      ::  Int64
+    tree            :: Node
+    n_features      :: Int64
 end
 
 """
 predict :
 """
-function predict(tree::CausalTree.Tree,X::Array{Float64,2})
+function predict(
+    tree            :: Tree,
+    X               :: Array{Float64,2}
+    )
+
     tau_ =  Array{Float64,1}()
     n_samples, n_features = size(X)
     tree = tree.tree
@@ -59,16 +63,19 @@ CausalForest :
 Causal forest object
 """
 struct Forest
-    trees           ::  Array{CausalTree.Tree,1}
-    feature_index   ::  Any
-    n_trees         ::  Int64
-    n_features      ::  Int64
+    trees           :: Array{Tree,1}
+    feature_index   :: Any
+    n_trees         :: Int64
+    n_features      :: Int64
 end
 
 """
 predict :
 """
-function predict(forest::CausalTree.Forest,X::Array{Float64,2})
+function predict(
+    forest          :: Forest,
+    X               :: Array{Float64,2}
+    )
 
     # initialise prediction arrays
     n_samples, n_features = size(X)

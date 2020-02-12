@@ -1,8 +1,6 @@
 import Statistics
 import Plots
 
-include("utils.jl")
-
 function positions(tree)
 
         # convert tree to tabular form, and add position columns

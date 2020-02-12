@@ -1,9 +1,6 @@
 import Statistics
 import StatsBase
 
-include("tree.jl")
-include("loss.jl")
-include("utils.jl")
 #using .Loss
 
 """
@@ -20,14 +17,15 @@ min_leaf_size: minimum number of unique values in a leaf
 Note: aim is to maximise the loss function
 """
 function learn_split!(
-    node,
-    X::Array{Float64,2},
-    w::Array{Int64,1},
-    y::Array{Float64,1},
-    loss::Function,
-    min_leaf_size::Int64,
-    min_loss_increase::Float64,
-    max_depth::Int64)
+    node                :: Node,
+    X                   :: Array{Float64,2},
+    w                   :: Array{Int64,1},
+    y                   :: Array{Float64,1},
+    loss                :: Function,
+    min_leaf_size       :: Int64,
+    min_loss_increase   :: Float64,
+    max_depth           :: Int64
+    )
 
     region = node.region
     n_samples = length(region)
@@ -69,9 +67,9 @@ function learn_split!(
                 yr = yp[xpj .>= proposal]
                 wr = wp[xpj .>= proposal]
                 # test whether to continue
-                if ((sum(wl .== 0) < min_leaf_size) |
-                    (sum(wl .== 1) < min_leaf_size) |
-                    (sum(wr .== 0) < min_leaf_size) |
+                if ((sum(wl .== 0) < min_leaf_size) ||
+                    (sum(wl .== 1) < min_leaf_size) ||
+                    (sum(wr .== 0) < min_leaf_size) ||
                     (sum(wr .== 1) < min_leaf_size))
                     continue  # fail => move to next split point
                 end
@@ -121,13 +119,14 @@ max_depth: maximum tree depth
 Note: aim is to maximise the loss function
 """
 function learn_tree(
-    X::Array{Float64,2},
-    w::Array{Int64,1},
-    y::Array{Float64,1},
-    loss::Function,
-    min_leaf_size::Int64,
-    min_loss_increase::Float64,
-    max_depth::Int64)
+    X                   :: Array{Float64,2},
+    w                   :: Array{Int64,1},
+    y                   :: Array{Float64,1},
+    loss                :: Function,
+    min_leaf_size       :: Int64,
+    min_loss_increase   :: Float64,
+    max_depth           :: Int64
+    )
 
     n_samples, n_features = size(X)
     indX = collect(1:n_samples)
@@ -155,10 +154,11 @@ estimate_leaf_value :
 
 """
 function learn_leaf_value(
-    tree,
-    X::Array{Float64,2},
-    w::Array{Int64,1},
-    y::Array{Float64,1})
+    tree                :: Node,
+    X                   :: Array{Float64,2},
+    w                   :: Array{Int64,1},
+    y                   :: Array{Float64,1}
+    )
 
     n_samples, n_features = size(X)
     id_vec = match_to_id(tree,X)
@@ -192,15 +192,16 @@ causal_tree :
 structure_p : the proportion of the data used in estimating the tree structure (i.e. nodes)
 """
 function causal_tree(
-    X::Array{Float64,2},
-    w::Array{Int64,1},
-    y::Array{Float64,1},
-    loss::Function,
-    min_leaf_size::Int64,
-    min_loss_increase::Float64,
-    max_depth::Int64,
-    honesty::Bool=false,
-    structure_p::Float64=0.5)
+    X                   :: Array{Float64,2},
+    w                   :: Array{Int64,1},
+    y                   :: Array{Float64,1},
+    loss                :: Function,
+    min_leaf_size       :: Int64,
+    min_loss_increase   :: Float64,
+    max_depth           :: Int64,
+    honesty             :: Bool=false,
+    structure_p         :: Float64=0.5
+    )
 
     # dataset dimensions
     n_samples, n_features = size(X)
@@ -242,19 +243,20 @@ causal_forest : learn a causal forest
 
 """
 function causal_forest(
-    X::Array{Float64,2},
-    w::Array{Int64,1},
-    y::Array{Float64,1},
-    loss::Function,
-    n_trees::Int64,
-    col_subsamp_p::Float64,
-    row_subsamp_p::Float64,
-    row_resample::Bool,
-    min_leaf_size::Int64,
-    min_loss_increase::Float64,
-    max_depth::Int64,
-    honesty::Bool=false,
-    structure_p::Float64=0.5)
+    X                   :: Array{Float64,2},
+    w                   :: Array{Int64,1},
+    y                   :: Array{Float64,1},
+    loss                :: Function,
+    n_trees             :: Int64,
+    col_subsamp_p       :: Float64,
+    row_subsamp_p       :: Float64,
+    row_resample        :: Bool,
+    min_leaf_size       :: Int64,
+    min_loss_increase   :: Float64,
+    max_depth           :: Int64,
+    honesty             :: Bool=false,
+    structure_p         :: Float64=0.5
+    )
 
     # dataset dimensions
     n_samples, n_features = size(X)
@@ -266,9 +268,9 @@ function causal_forest(
     row_subsamp_n = convert(Int64,floor(row_subsamp_p*n_samples))
 
     # initialise empty array for trees and column indices
-    trees = Array{CausalTree.Tree,1}(undef,n_trees)
+    trees = Array{CausalTrees.Tree,1}(undef,n_trees)
     feature_index = Array{Int64,2}(undef,(n_trees,col_subsamp_n))
-    
+
     for t in 1:n_trees
         # subsamples
         ind_r_t = StatsBase.sample(1:n_samples,row_subsamp_n,replace=row_resample)
