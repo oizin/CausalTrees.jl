@@ -30,18 +30,23 @@ x,w,y,tau = gen_trial1(100)
 
 
 # causal_tree(X,w,y,loss,min_leaf_size,min_loss_increase,max_depth,honesty,structure_p)
-@time t1 = causal_tree(x,w,y,mse_tau,10,0.0,2)
-@time t2 = causal_tree(x,w,y,mse_tau,10,0.0,8,true,0.7)
+@time t1 = causal_tree(x,w,y,mse_tau,10,0.0,50)
+tauhat1 = CausalTrees.predict(t1,x)
+Plots.scatter(x[:,1], truth,label="truth",legend=:topleft)
+Plots.scatter!(x[:,1],tauhat1,label="not honest")
 
 
-tauhat1 = CausalTree.predict(t1,x); tauhat2 = CausalTree.predict(t2,x)
+@time t2 = causal_tree(x,w,y,mse_tau,10,0.0,8,true,0.5)
+
+
+
+
+tauhat2 = CausalTree.predict(t2,x)
 nh_error = sqrt(Statistics.mean((tauhat1 .- truth).^2))
 h_error = sqrt(Statistics.mean((tauhat2 .- truth).^2))
 println(nh_error)
 println(h_error)
 println(h_error/nh_error)
-Plots.scatter(x[:,1], truth,label="truth",legend=:topleft)
-Plots.scatter!(x[:,1],tauhat1,label="not honest")
 Plots.scatter!(x[:,1],tauhat2,label="honest")
 
 # printing

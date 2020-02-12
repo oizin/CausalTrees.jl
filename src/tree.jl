@@ -7,13 +7,13 @@ Node object for constructing tree
 mutable struct Node
     id              :: Int64
     feature         :: Int64
-    threshold       :: Number  # should be float64
-    l               :: Any  # should be Node or Int64 or Float64
-    r               :: Any  # should be Node or Int64 or Float64
+    threshold       :: Number
+    l               :: Node
+    r               :: Node
     region          :: Union{Array{Int64,1},Nothing}
     depth           :: Int64
     is_leaf         :: Bool
-    value           :: Any  # return value when a leaf
+    value           :: Any
 
     function Node(region,depth)
         node = new()

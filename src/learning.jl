@@ -61,30 +61,26 @@ function learn_split!(
                 end
                 proposal = xsj[i]  # proposed threshold
                 # construct lhs
-                yl = yp[xpj .< proposal]
-                wl = wp[xpj .< proposal]
+                mskl = xpj .< proposal
                 # construct rhs
-                yr = yp[xpj .>= proposal]
-                wr = wp[xpj .>= proposal]
+                mskr = xpj .>= proposal
                 # test whether to continue
-                if ((sum(wl .== 0) < min_leaf_size) ||
-                    (sum(wl .== 1) < min_leaf_size) ||
-                    (sum(wr .== 0) < min_leaf_size) ||
-                    (sum(wr .== 1) < min_leaf_size))
+                if ((sum(wp[mskl] .== 0) < min_leaf_size) ||
+                    (sum(wp[mskl]  .== 1) < min_leaf_size) ||
+                    (sum(wp[mskr]  .== 0) < min_leaf_size) ||
+                    (sum(wp[mskr]  .== 1) < min_leaf_size))
                     continue  # fail => move to next split point
                 end
                 # evaluate splits
-                taur_ = ate(yr,wr)
-                taul_ = ate(yl,wl)
+                taur_ = ate(yp[mskr],wp[mskr])
+                taul_ = ate(yp[mskl],wp[mskl])
                 prop_loss = loss(taul_) + loss(taur_)
                 if prop_loss > (current_loss + min_loss_increase)
                     feature = j
                     threshold = proposal
                     current_loss = prop_loss
-                    global region_l
-                    global region_r
-                    region_l = region[xpj .< threshold]
-                    region_r = region[xpj .>= threshold]
+                    region_l = region[mskl]
+                    region_r = region[mskr]
                 end
             end
         end

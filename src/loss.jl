@@ -9,7 +9,7 @@ y_: prediction
 
 Note: this is the negative mean square error
 """
-function mse_tau(tau_)
+function mse_tau(tau_::Float64)
     n_sample = length(tau_)
     return(n_sample*(tau_^2))
 end
@@ -28,7 +28,7 @@ end
 """
 usage: treatment_effect([3,5,4,3,6,7,5],[1,1,1,1,0,0,0])
 """
-function ate(y,w::Array{Int64,1})
+function ate(y::Array{Float64,1},w::Array{Int64,1})
     y1 = Statistics.mean(y[w .== 1])
     y0 = Statistics.mean(y[w .== 0])
     y1 - y0
