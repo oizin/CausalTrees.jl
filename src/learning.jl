@@ -79,8 +79,8 @@ function learn_split!(
                     feature = j
                     threshold = proposal
                     current_loss = prop_loss
-                    region_l = region[mskl]
-                    region_r = region[mskr]
+                    global region_l = region[mskl]
+                    global region_r = region[mskr]
                 end
             end
         end

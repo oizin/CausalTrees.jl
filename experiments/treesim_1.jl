@@ -30,9 +30,9 @@ x,w,y,tau = gen_trial1(100)
 
 
 # causal_tree(X,w,y,loss,min_leaf_size,min_loss_increase,max_depth,honesty,structure_p)
-@time t1 = causal_tree(x,w,y,mse_tau,10,0.0,50)
+@time t1 = causal_tree(x,w,y,mse_tau,10,0.0,5)
 tauhat1 = CausalTrees.predict(t1,x)
-Plots.scatter(x[:,1], truth,label="truth",legend=:topleft)
+Plots.scatter(x[:,1], tau,label="truth",legend=:topleft)
 Plots.scatter!(x[:,1],tauhat1,label="not honest")
 
 
