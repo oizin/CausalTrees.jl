@@ -28,7 +28,6 @@ end
 # Simulation #1 ---------------------------------------------------------------
 x,w,y,tau = gen_trial1(1000)
 
-
 # causal_tree(X,w,y,loss,min_leaf_size,min_loss_increase,max_depth,honesty,structure_p)
 @time t1 = causal_tree(x,w,y,mse_tau,10,0.0,3)
 tauhat1 = CausalTrees.predict(t1,x)

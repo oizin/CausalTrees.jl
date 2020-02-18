@@ -9,9 +9,8 @@ y_: prediction
 
 Note: this is the negative mean square error
 """
-function mse_tau(tau_::Float64)
-    n_sample = length(tau_)
-    return(n_sample*(tau_^2))
+function mse_tau(tau_::Float64,n::Int)
+    return(n*(tau_^2))
 end
 
 """

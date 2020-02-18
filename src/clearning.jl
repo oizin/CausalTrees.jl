@@ -26,7 +26,7 @@ function learn_split!(
     min_loss_increase   :: Float64,
     max_depth           :: Int64
     )
-    println("called...")
+
     region = node.region
     n_samples = length(region)
     n_features = size(X)[2]
@@ -48,11 +48,11 @@ function learn_split!(
     if (node.depth <= max_depth)
         # for each column evaluate all possible split points
         # outer loop: loop over columns
-        for j in 1:n_features
+        @inbounds for j in 1:n_features
             xpj = Xp[:,j]
             xsj = sort(xpj)
             # inner loop: loop over unique row values of a column
-            for i in 2:(n_samples)
+            @inbounds for i in 2:(n_samples)
                 # don't test the same threshold more than once
                 if i > 1
                     if xsj[i] == xsj[i-1]
