@@ -1,7 +1,117 @@
 import Statistics
 import StatsBase
 
-#using .Loss
+"""
+Update an average based on a newly observed value
+
+"""
+function update_treatment_effect(
+    current             :: Float64,
+    y                   :: Float64,
+    w                   :: Int64,
+    n0                  :: Int64,
+    n1                  :: Int64,
+    remove              :: Bool=false
+    )
+
+    if remove == false
+        if w == 1
+            update = 2
+        elseif w == 0
+            update = 2
+        end
+    elseif remove == true
+        update = (n/(n-1))*current - (1/(n-1))*val
+    end
+    return(update)
+end
+
+
+"""
+Calculate group mean
+
+"""
+function group_mean(
+    y                   :: Array{Float64,1},
+    w                   :: Array{Int64,1},
+    group               :: Int64
+    )
+
+    yg_ = Statistics.mean(y[w .== group])
+    return(yg_)
+end
+
+"""
+Evaluate potential splits on treatment effect
+
+Arguments
+
+x:
+w:
+y:
+min_leaf_size:
+
+
+"""
+function evaluate_possible_splits(
+    x                   :: Array{Float64,1},
+    w                   :: Array{Int64,1},
+    y                   :: Array{Float64,1},
+    min_leaf_size       :: Int
+    )
+
+    oj = sortperm(x)
+    yj = y[oj]
+    n = length(x)
+    # first split
+    split = min_leaf_size
+
+    # left
+    l_indX = 1:min_leaf_size
+    y0l_ = group_mean(y[l_indX],w[l_indX],0)
+    y1l_ = group_mean(y[l_indX],w[l_indX],1)
+    taul_ = y1l_ - y0l_
+    # right
+    r_indX = (min_leaf_size+1):n
+    y0r_ = group_mean(y[r_indX],w[r_indX],0)
+    y1r_ = group_mean(y[r_indX],w[r_indX],1)
+    taur_ = y1r_ - y0r_
+
+    n0l = sum(w[l_indX] .== 0)
+    n1l = sum(w[l_indX] .== 1)
+    n0r = sum(w[r_indX] .== 0)
+    n1r = sum(w[r_indX] .== 1)
+
+    best_loss = min_leaf_size*taul_^2 + (n-min_leaf_size)*taur_^2 # update to function calling
+
+    @inbounds for i in (min_leaf_size+1):(n-min_leaf_size+1)
+
+        if w[i] == 0
+            n0l += 1
+            n0r -= 1
+            y0l_ = update_average(y0l_,yj[i],n0l)
+            y0r_ = update_average(y0r_,yj[i],n0r,true)
+        elseif w[i] == 1
+            n1l += 1
+            n1r -= 1
+            y1l_ = update_average(y1l_,yj[i],n1l)
+            y1r_ = update_average(y1r_,yj[i],n1r,true)
+        end
+        # update treatment effect and loss
+        taul_ = y1l_ - y0l_
+        taur_ = y1r_ - y0r_
+        loss_i = i*taul_^2 + (n-i)*taur_^2
+        if loss_i > best_loss
+            best_loss = loss_i
+            split = i
+        end
+    end
+    # compute threshold
+    threshold = (x[oj][split] + x[oj][split+1])/2.0
+    # return
+    return(split,threshold,best_loss)
+end
+
 
 """
 learn_split :
@@ -42,46 +152,22 @@ function learn_split!(
 
     # treatment effect and loss in partition region
     tau_ = ate(yp,wp)
-    current_loss = loss(tau_)
+    current_loss = n_samples*tau_^2
 
     # test whether maximum depth reached
-    if (node.depth <= max_depth)
+    if ((node.depth < max_depth) & (n_samples > min_leaf_size))
         # for each column evaluate all possible split points
         # outer loop: loop over columns
         @inbounds for j in 1:n_features
             xpj = Xp[:,j]
-            xsj = sort(xpj)
-            # inner loop: loop over unique row values of a column
-            @inbounds for i in 2:(n_samples)
-                # don't test the same threshold more than once
-                if i > 1
-                    if xsj[i] == xsj[i-1]
-                        continue
-                    end
-                end
-                proposal = xsj[i]  # proposed threshold
-                # construct lhs
-                mskl = xpj .< proposal
-                # construct rhs
-                mskr = xpj .>= proposal
-                # test whether to continue
-                if ((sum(wp[mskl] .== 0) < min_leaf_size) ||
-                    (sum(wp[mskl]  .== 1) < min_leaf_size) ||
-                    (sum(wp[mskr]  .== 0) < min_leaf_size) ||
-                    (sum(wp[mskr]  .== 1) < min_leaf_size))
-                    continue  # fail => move to next split point
-                end
-                # evaluate splits
-                taur_ = ate(yp[mskr],wp[mskr])
-                taul_ = ate(yp[mskl],wp[mskl])
-                prop_loss = loss(taul_) + loss(taur_)
-                if prop_loss > (current_loss + min_loss_increase)
-                    feature = j
-                    threshold = proposal
-                    current_loss = prop_loss
-                    global region_l = region[mskl]
-                    global region_r = region[mskr]
-                end
+            spj = compute_possible_splits(xpj,min_leaf_size)
+            split,prop_threshold,prop_loss = evaluate_possible_splits(xpj,yp,min_leaf_size)
+            if prop_loss > current_loss
+                feature = j
+                current_loss = prop_loss
+                threshold = prop_threshold
+                global region_l = region[xpj .< threshold]
+                global region_r = region[xpj .> threshold]
             end
         end
     end
@@ -191,10 +277,10 @@ function causal_tree(
     X                   :: Array{Float64,2},
     w                   :: Array{Int64,1},
     y                   :: Array{Float64,1},
-    loss                :: Function,
-    min_leaf_size       :: Int64,
-    min_loss_increase   :: Float64,
-    max_depth           :: Int64,
+    loss                :: Function;
+    min_leaf_size       :: Int64=20,
+    min_loss_increase   :: Float64=0.0,
+    max_depth           :: Int64=3,
     honesty             :: Bool=false,
     structure_p         :: Float64=0.5
     )
@@ -242,14 +328,14 @@ function causal_forest(
     X                   :: Array{Float64,2},
     w                   :: Array{Int64,1},
     y                   :: Array{Float64,1},
-    loss                :: Function,
-    n_trees             :: Int64,
-    col_subsamp_p       :: Float64,
-    row_subsamp_p       :: Float64,
-    row_resample        :: Bool,
-    min_leaf_size       :: Int64,
-    min_loss_increase   :: Float64,
-    max_depth           :: Int64,
+    loss                :: Function;
+    n_trees             :: Int64=100,
+    col_subsamp_p       :: Float64=1.0,
+    row_subsamp_p       :: Float64=1.0,
+    row_resample        :: Bool=true,
+    min_leaf_size       :: Int64=10,
+    min_loss_increase   :: Float64=0.0,
+    max_depth           :: Int64=3,
     honesty             :: Bool=false,
     structure_p         :: Float64=0.5
     )
@@ -275,8 +361,12 @@ function causal_forest(
         wt = w[ind_r_t]
         yt = y[ind_r_t]
         # train forest
-        trees[t] = causal_tree(Xt,wt,yt,loss,min_leaf_size,min_loss_increase,
-            max_depth,honesty,structure_p)
+        trees[t] = causal_tree(Xt,wt,yt,loss,
+            min_leaf_size=min_leaf_size,
+            min_loss_increase=min_loss_increase,
+            max_depth=max_depth,
+            honesty=honesty,
+            structure_p=structure_p)
         feature_index[t,:] = ind_c_t
     end
     return(Forest(trees,feature_index,n_trees,n_features))

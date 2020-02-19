@@ -1,6 +1,9 @@
 
 import Statistics
 
+# All loss functions should be of the form
+# 
+
 """
 mse_tau
 Loss function for optimising a model to mean square error

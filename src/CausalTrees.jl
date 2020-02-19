@@ -1,3 +1,5 @@
+__precompile__()
+
 module CausalTrees
 
 include("tree.jl")
@@ -12,5 +14,6 @@ export causal_forest
 export predict
 export mse_tau
 export decision_tree
+export random_forest
 
 end # module

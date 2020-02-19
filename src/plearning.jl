@@ -1,17 +1,19 @@
 import Statistics
 import StatsBase
 
-#using .Loss
-
 """
 compute_possible_splits
 
 """
-function compute_possible_splits(x)
+function compute_possible_splits(
+    x                   :: Array{Float64,1},
+    min_leaf_size       :: Int
+    )
+
     x = sort(x)
     n = length(x)
     splits = Vector{Float64}(undef,(n-1))
-    @inbounds for i in 1:(n-1)
+    @inbounds for i in min_leaf_size:(n-min_leaf_size)
         splits[i] = (x[i] + x[i+1])/2.0
     end
     return(splits)
@@ -22,16 +24,21 @@ end
 evaluate_possible_splits
 
 """
-function evaluate_possible_splits(x,y)
+function evaluate_possible_splits(
+    x                   :: Array{Float64,1},
+    y                   :: Array{Float64,1},
+    min_leaf_size       :: Int
+    )
+
     oj = sortperm(x)
     yj = y[oj]
     n = length(x)
     # first split
-    split = 2  # actually (x[1] + x[2])/2  x["1.5"]
-    yl_ = Statistics.mean(yj[1])
-    yr_ = Statistics.mean(yj[2:end])
-    best_loss = yl_^2 + (n-1)*yr_^2
-    @inbounds for i in 2:(n-1)
+    split = min_leaf_size  # actually (x[1] + x[2])/2  x["1.5"]
+    yl_ = Statistics.mean(yj[1:min_leaf_size])
+    yr_ = Statistics.mean(yj[(min_leaf_size+1):end])
+    best_loss = min_leaf_size*yl_^2 + (n-min_leaf_size)*yr_^2 # update to function calling
+    @inbounds for i in (min_leaf_size+1):(n-min_leaf_size+1)
         yl_ = update_average(yl_,yj[i],i)
         yr_ = update_average(yr_,yj[i],n-i,true)
         loss_i = i*yl_^2 + (n-i)*yr_^2
@@ -40,7 +47,10 @@ function evaluate_possible_splits(x,y)
             split = i
         end
     end
-    return(split,best_loss)
+    # compute threshold
+    threshold = (x[oj][split] + x[oj][split+1])/2.0
+    # return
+    return(split,threshold,best_loss)
 end
 
 
@@ -48,7 +58,13 @@ end
 Update an average based on a newly observed value
 
 """
-function update_average(current,val,n,remove::Bool=false)
+function update_average(
+    current             :: Float64,
+    val                 :: Float64,
+    n                   :: Int64,
+    remove              :: Bool=false
+    )
+
     if remove == false
         update = (n/(n+1))*current + (1/(n+1))*val
     elseif remove == true
@@ -105,12 +121,13 @@ function learn_split!(
         # outer loop: loop over columns
         @inbounds for j in 1:n_features
             xpj = Xp[:,j]
-            spj = compute_possible_splits(xpj)
-            split,prop_loss = evaluate_possible_splits(xpj,yp)
+            #spj = compute_possible_splits(xpj,min_leaf_size)  # no!
+            split,prop_threshold,prop_loss = evaluate_possible_splits(xpj,yp,min_leaf_size)
+
             if prop_loss > current_loss
                 feature = j
                 current_loss = prop_loss
-                threshold = spj[split-1]
+                threshold = prop_threshold
                 global region_l = region[xpj .< threshold]
                 global region_r = region[xpj .> threshold]
             end
@@ -220,10 +237,10 @@ structure_p : the proportion of the data used in estimating the tree structure (
 function decision_tree(
     X                   :: Array{Float64,2},
     y                   :: Array{Float64,1},
-    loss                :: Function,
-    min_leaf_size       :: Int64,
-    min_loss_increase   :: Float64,
-    max_depth           :: Int64,
+    loss                :: Function;
+    min_leaf_size       :: Int64=10,
+    min_loss_increase   :: Float64=0.0,
+    max_depth           :: Int64=3,
     honesty             :: Bool=false,
     structure_p         :: Float64=0.5
     )
@@ -268,14 +285,14 @@ causal_forest : learn a causal forest
 function random_forest(
     X                   :: Array{Float64,2},
     y                   :: Array{Float64,1},
-    loss                :: Function,
-    n_trees             :: Int64,
-    col_subsamp_p       :: Float64,
-    row_subsamp_p       :: Float64,
-    row_resample        :: Bool,
-    min_leaf_size       :: Int64,
-    min_loss_increase   :: Float64,
-    max_depth           :: Int64,
+    loss                :: Function;
+    n_trees             :: Int64=100,
+    col_subsamp_p       :: Float64=1.0,
+    row_subsamp_p       :: Float64=1.0,
+    row_resample        :: Bool=true,
+    min_leaf_size       :: Int64=10,
+    min_loss_increase   :: Float64=0.0,
+    max_depth           :: Int64=3,
     honesty             :: Bool=false,
     structure_p         :: Float64=0.5
     )
@@ -293,15 +310,19 @@ function random_forest(
     trees = Array{CausalTrees.Tree,1}(undef,n_trees)
     feature_index = Array{Int64,2}(undef,(n_trees,col_subsamp_n))
 
-    for t in 1:n_trees
+    @inbounds for t in 1:n_trees
         # subsamples
         ind_r_t = StatsBase.sample(1:n_samples,row_subsamp_n,replace=row_resample)
         ind_c_t = StatsBase.sample(1:n_features,col_subsamp_n,replace=false)
         Xt = X[ind_r_t,ind_c_t]
         yt = y[ind_r_t]
         # train forest
-        trees[t] = causal_tree(Xt,yt,loss,min_leaf_size,min_loss_increase,
-            max_depth,honesty,structure_p)
+        trees[t] = decision_tree(Xt,yt,loss,
+            min_leaf_size=min_leaf_size,
+            min_loss_increase=min_loss_increase,
+            max_depth=max_depth,
+            honesty=honesty,
+            structure_p=structure_p)
         feature_index[t,:] = ind_c_t
     end
     return(Forest(trees,feature_index,n_trees,n_features))
