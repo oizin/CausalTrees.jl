@@ -1,31 +1,6 @@
 import Statistics
 import StatsBase
 
-"""
-Update an average based on a newly observed value
-
-"""
-function update_treatment_effect(
-    current             :: Float64,
-    y                   :: Float64,
-    w                   :: Int64,
-    n0                  :: Int64,
-    n1                  :: Int64,
-    remove              :: Bool=false
-    )
-
-    if remove == false
-        if w == 1
-            update = 2
-        elseif w == 0
-            update = 2
-        end
-    elseif remove == true
-        update = (n/(n-1))*current - (1/(n-1))*val
-    end
-    return(update)
-end
-
 
 """
 Calculate group mean
@@ -60,21 +35,22 @@ function evaluate_possible_splits(
     min_leaf_size       :: Int
     )
 
-    oj = sortperm(x)
+    oj = sortperm(x,rev=true)
     yj = y[oj]
-    n = length(x)
+    wj = w[oj]
+    n = length(w)
     # first split
     split = min_leaf_size
 
     # left
     l_indX = 1:min_leaf_size
-    y0l_ = group_mean(y[l_indX],w[l_indX],0)
-    y1l_ = group_mean(y[l_indX],w[l_indX],1)
+    y0l_ = group_mean(yj[l_indX],wj[l_indX],0)
+    y1l_ = group_mean(yj[l_indX],wj[l_indX],1)
     taul_ = y1l_ - y0l_
     # right
     r_indX = (min_leaf_size+1):n
-    y0r_ = group_mean(y[r_indX],w[r_indX],0)
-    y1r_ = group_mean(y[r_indX],w[r_indX],1)
+    y0r_ = group_mean(yj[r_indX],wj[r_indX],0)
+    y1r_ = group_mean(yj[r_indX],wj[r_indX],1)
     taur_ = y1r_ - y0r_
 
     n0l = sum(w[l_indX] .== 0)
@@ -82,16 +58,20 @@ function evaluate_possible_splits(
     n0r = sum(w[r_indX] .== 0)
     n1r = sum(w[r_indX] .== 1)
 
-    best_loss = min_leaf_size*taul_^2 + (n-min_leaf_size)*taur_^2 # update to function calling
+    start = min_leaf_size
+    while n0l == 0 | n1l == 0 | n0r == 0 | n1r == 0
+        start += 1
+    end
+
+    best_loss = (1/n)*(start*taul_^2 + (n-start)*taur_^2) # update to function calling
 
     @inbounds for i in (min_leaf_size+1):(n-min_leaf_size+1)
-
-        if w[i] == 0
+        if wj[i] == 0
             n0l += 1
             n0r -= 1
             y0l_ = update_average(y0l_,yj[i],n0l)
             y0r_ = update_average(y0r_,yj[i],n0r,true)
-        elseif w[i] == 1
+        elseif wj[i] == 1
             n1l += 1
             n1r -= 1
             y1l_ = update_average(y1l_,yj[i],n1l)
@@ -100,7 +80,7 @@ function evaluate_possible_splits(
         # update treatment effect and loss
         taul_ = y1l_ - y0l_
         taur_ = y1r_ - y0r_
-        loss_i = i*taul_^2 + (n-i)*taur_^2
+        loss_i = (1/n)*(i*taul_^2 + (n-i)*taur_^2)
         if loss_i > best_loss
             best_loss = loss_i
             split = i
@@ -152,7 +132,7 @@ function learn_split!(
 
     # treatment effect and loss in partition region
     tau_ = ate(yp,wp)
-    current_loss = n_samples*tau_^2
+    current_loss = (1/n_samples) * tau_^2
 
     # test whether maximum depth reached
     if ((node.depth < max_depth) & (n_samples > min_leaf_size))
@@ -160,8 +140,8 @@ function learn_split!(
         # outer loop: loop over columns
         @inbounds for j in 1:n_features
             xpj = Xp[:,j]
-            spj = compute_possible_splits(xpj,min_leaf_size)
-            split,prop_threshold,prop_loss = evaluate_possible_splits(xpj,yp,min_leaf_size)
+            #spj = compute_possible_splits(xpj,min_leaf_size)
+            split,prop_threshold,prop_loss = evaluate_possible_splits(xpj,wp,yp,min_leaf_size)
             if prop_loss > current_loss
                 feature = j
                 current_loss = prop_loss
