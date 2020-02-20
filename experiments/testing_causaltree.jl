@@ -1,6 +1,6 @@
+using CausalTrees
 using Plots
 import Statistics
-using CausalTrees
 
 # Functions to generate data ##################################################
 """
@@ -29,11 +29,12 @@ end
 # generate data
 x,w,y,tau = gen_trial1(200)
 # plot
-scatter(x[:,1],y,colour=w .+ 1,label="",legend=:bottomright)
+plotly()
+scatter(x[:,1],y,colour=w .+ 1,label="σ",legend=:bottomright)
 # test split finding algorithm: split #1
 @time split_i,thres,loss = CausalTrees.evaluate_possible_splits(x[:,1],w,y,10)
 #@time pos_thres = CausalTrees.compute_possible_splits(x[:,1],10)
-vline!([thres], label = "split #1")
+vline!([thres], label = L"split #1")
 # test split finding algorithm: split #2
 msk = x[:,1] .< thres
 @time split_i,thres,loss = CausalTrees.evaluate_possible_splits(x[msk,1],w[msk],y[msk],10)
@@ -43,11 +44,13 @@ vline!([thres], label = "split #2")
 # generate data
 x,w,y,tau = gen_trial1(200)
 # plot
-scatter(x[:,1],tau,color= w,label="")
+Plots.scatter(x[:,1],tau,color= w,label= "x^2")
 # fit tree and predict
 @time t1 = causal_tree(x,w,y,mse_tau,min_leaf_size=10)
 yhat = predict(t1,x)
-scatter!(x[:,1],yhat,label="",markershape=:hline,markercolor=:red)
+Plots.scatter!(x[:,1],yhat,label="",markershape=:hline,markercolor=:red)
+# plot the tree
+@time CausalTrees.plot(t1,leaf_size=5)
 
 # TEST 3 #######################################################################
 # generate data
