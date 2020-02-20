@@ -2,6 +2,10 @@ __precompile__()
 
 module CausalTrees
 
+import Statistics
+import PyPlot
+import Plots
+
 include("tree.jl")
 include("loss.jl")
 include("utils.jl")

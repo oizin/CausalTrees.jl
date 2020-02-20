@@ -41,20 +41,21 @@ remove_region :
 Remove region index information from a node
 """
 function remove_region!(node)
-    node.region = nothing
+    node.n = size(node.region)[1]
+    #node.region = nothing
 end
 
 """
 tree_to_array :
 convert a tree to an array
 """
-function tree_to_array(tree,parent=-1,tree_tab=Array{Union{Int64,Float64,Bool},2}(undef,0,7))
+function tree_to_array(tree,parent=-1,tree_tab=Array{Union{Int64,Float64,Bool},2}(undef,0,8))
     if tree.is_leaf == false
-        tree_tab = vcat(Union{Int64,Float64,Bool}[tree.id parent tree.is_leaf tree.value tree.feature tree.threshold tree.depth],
+        tree_tab = vcat(Union{Int64,Float64,Bool}[tree.id parent tree.is_leaf tree.value tree.feature tree.threshold tree.depth tree.n],
                     tree_to_array(tree.l,tree.id,tree_tab),
                     tree_to_array(tree.r,tree.id,tree_tab))
     else
-        tree_tab = Union{Int64,Float64,Bool}[tree.id parent tree.is_leaf tree.value NaN NaN tree.depth]
+        tree_tab = Union{Int64,Float64,Bool}[tree.id parent tree.is_leaf tree.value NaN NaN tree.depth tree.n]
     end
     return(tree_tab)
 end

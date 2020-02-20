@@ -14,6 +14,7 @@ mutable struct Node
     depth           :: Int64
     is_leaf         :: Bool
     value           :: Any
+    n               :: Int64
 
     function Node(region,depth)
         node = new()

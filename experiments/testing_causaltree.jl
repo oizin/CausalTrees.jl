@@ -44,13 +44,14 @@ vline!([thres], label = "split #2")
 # generate data
 x,w,y,tau = gen_trial1(200)
 # plot
-Plots.scatter(x[:,1],tau,color= w,label= "x^2")
+scatter(x[:,1],tau,color= w,label= "")
 # fit tree and predict
 @time t1 = causal_tree(x,w,y,mse_tau,min_leaf_size=10)
 yhat = predict(t1,x)
 Plots.scatter!(x[:,1],yhat,label="",markershape=:hline,markercolor=:red)
 # plot the tree
-@time CausalTrees.plot(t1,leaf_size=5)
+@time CausalTrees.plot(t1,leaf_size=5,split_xsize=2,split_ysize=1)
+
 
 # TEST 3 #######################################################################
 # generate data
