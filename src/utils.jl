@@ -42,7 +42,7 @@ Remove region index information from a node
 """
 function remove_region!(node)
     node.n = size(node.region)[1]
-    #node.region = nothing
+    node.region = nothing
 end
 
 """
@@ -65,7 +65,7 @@ print a tree
 
 """
 function print(tree;digits=2)
-    header = ["id", "parent","leaf","value","feature","threshold","depth"]
+    header = ["id", "parent","leaf","value","feature","threshold","depth","n"]
     tree_tab = tree_to_array(tree)
     tree_tab = tree_tab[sortperm(tree_tab[:,7]),:]
     formatter = Dict(4 => (v,i)-> round(v;digits=digits),

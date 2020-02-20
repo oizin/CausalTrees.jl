@@ -51,7 +51,8 @@ yhat = predict(t1,x)
 Plots.scatter!(x[:,1],yhat,label="",markershape=:hline,markercolor=:red)
 # plot the tree
 @time CausalTrees.plot(t1,leaf_size=5,split_xsize=2,split_ysize=1)
-
+# print the results
+CausalTrees.print(t1.tree)
 
 # TEST 3 #######################################################################
 # generate data
