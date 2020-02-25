@@ -64,7 +64,10 @@ end
 print a tree
 
 """
-function print(tree;digits=2)
+function print(
+    tree
+    ;digits=2)
+    tree = tree.tree
     header = ["id", "parent","leaf","value","feature","threshold","depth","n"]
     tree_tab = tree_to_array(tree)
     tree_tab = tree_tab[sortperm(tree_tab[:,7]),:]

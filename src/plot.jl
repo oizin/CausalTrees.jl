@@ -13,7 +13,7 @@ function positions(tree::Node)
         y_depths = collect(1:-1/(depth-1):0)
 
         # position of leaf nodes
-        tree_tab_xy[tree_tab[:,3] .== true,9] = collect(0:1/(nleaf-1):1)
+        tree_tab_xy[tree_tab[:,3] .== true,9] = collect(0.0:1/(nleaf-1):1.0)
         tree_tab_xy[tree_tab[:,3] .== true,10] .= 0.0
 
         for i in depth:-1:1
@@ -27,6 +27,11 @@ function positions(tree::Node)
                         end
                 end
         end
+
+        # rescale
+        tree_tab_xy[:,9] = tree_tab_xy[:,9] .* 0.9 .+ 0.05
+        tree_tab_xy[:,10] = tree_tab_xy[:,10] .* 0.9 .+ 0.05
+        # return
         return(tree_tab_xy)
 end
 

@@ -1,7 +1,6 @@
 __precompile__()
 
 module CausalTrees
-
 import Statistics
 import PyPlot
 import Plots
@@ -19,5 +18,6 @@ export predict
 export mse_tau
 export decision_tree
 export random_forest
+export plot
 
 end # module
