@@ -25,6 +25,38 @@ function gen_trial1(n::Int,pnoise::Int=0)
     (x,w,y,tau)
 end
 
+
+"""
+logistic
+"""
+logistic(α) = exp(α) / (1 + exp(α))
+
+
+"""
+Generate RCT like data, with heterogeneity in the treatment effect
+n: number of samples (total)
+pnoise: number of noise variable
+"""
+function gen_trial2(n::Int,pnoise::Int=0)
+    # covariates
+    x = randn((n,3+pnoise))
+    # treatment group
+    w = rand([0,1],n)
+    # part of treatment effect
+    α = 2 .* x[:,1] + 0.5 .* x[:,2] + 0.7 .* w
+    τ = 0.4 .* x[:,1]
+    y0 = logistic.(α)
+    y1 = logistic.(α) .+ logistic.(τ + 0.1 .* randn(n))
+    truth = y1 .- y0
+    # observed outcome
+    ypr = (1 .- w) .* y0 + w .* y1
+    y = zeros(n)
+    rr = rand(n)
+    y[ypr .> rr] .= 1.0
+    y = reshape(y,n)
+    (x,w,y,ypr)
+end
+
 # TEST 1 ######################################################################
 # generate data
 x,w,y,tau = gen_trial1(200)
@@ -52,7 +84,7 @@ Plots.scatter!(x[:,1],yhat,label="",markershape=:hline,markercolor=:red)
 # plot the tree
 @time CausalTrees.plot(t1,leaf_size=5,split_xsize=2,split_ysize=1)
 # print the results
-CausalTrees.print(t1.tree)
+CausalTrees.print(t1)
 
 # TEST 3 #######################################################################
 # generate data
@@ -95,4 +127,39 @@ tauhat_t = predict(t1,x)
 scatter!(x[:,1],tauhat_rf,label="causal forest",colour=:lightblue)
 scatter!(x[:,1],tauhat_t,label="causal tree",colour=:pink)
 ate_ = CausalTrees.ate(y,w)
+hline!([ate_],label="ate")
+
+# TEST 5 #######################################################################
+# binary data
+n = 5000
+# covariates
+x = randn((n,5))
+# treatment group
+w = rand([0,1],n)
+# part of treatment effect
+α = 0.6 .* x[:,1] + 0.7 .* x[:,2]
+τ = 0.4 .+ 0.4 .* x[:,1]
+y0 = logistic.(α + 0.01 .* randn(n))
+y1 = logistic.(α + τ + 0.01 .* randn(n))
+scatter(x[:,1],y1 .- y0)
+ypr = (1 .- w) .* y0 + w .* y1
+y = zeros(n)
+rr = rand(n)
+y[ypr .> rr] .= 1.0
+y = reshape(y,n)
+
+println("True: ",Statistics.mean(y1 .- y0))
+
+println("Est: ",Statistics.mean(y[w .== 1]) - Statistics.mean(y[w .== 0]))
+# you need to add w to x for this to work!!!!!!
+
+# plots
+#histogram(tau)
+scatter(x[:,1],y1 .- y0,colour=w,label="",legend=:bottomright,markersize=5)
+# fit random forest and predict
+@time t1 = causal_tree(x,w,y,mse_tau,min_leaf_size=40,max_depth=3,honesty=true)
+tauhat_t = predict(t1,x)
+scatter!(x[:,1],tauhat_t,label="causal tree",colour=:pink)
+ate_ = CausalTrees.ate(y,w)
+println(ate_," ", Statistics.mean(tau))
 hline!([ate_],label="ate")

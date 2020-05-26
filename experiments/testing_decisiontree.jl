@@ -2,6 +2,12 @@ using Plots
 import Statistics
 using CausalTrees
 
+"""
+logistic
+"""
+logistic(α) = exp(α) / (1 + exp(α))
+
+
 # TEST 1 ######################################################################
 # generate data
 x = randn(100)
@@ -73,3 +79,32 @@ scatter(x[:,1],y,label="")
     min_leaf_size=30,honesty=true)
 yhat = predict(rf1,x)
 scatter!(x[:,1],yhat,label="")
+
+# TEST 6 #######################################################################
+# binary data
+n = 2000
+# covariates
+x = randn((n,5))
+# treatment group
+w = rand([0,1],n)
+# part of treatment effect
+α = 1.8 .* x[:,1] + 0.8 .* x[:,2]
+yp = logistic.(α + 0.01 .* randn(n))
+y = zeros(n)
+rr = rand(n)
+y[yp .> rr] .= 1.0
+y = reshape(y,n)
+# plot
+scatter(x[:,1],y,label="")
+# fit random forest and predict
+@time rf1 = CausalTrees.random_forest(x,y,mse_tau,n_trees=1000,row_subsamp_p=0.8,
+    min_leaf_size=30,honesty=false)
+
+
+
+yhat = predict(rf1,x)
+scatter!(x[:,1],yhat,label="")
+scatter!(x[:,1],logistic.(0.6 .* x[:,1] + 0.5 .* x[:,2]),label="")
+
+scatter(yp,yhat,label="")
+plot!(Shape([(0,0),(1,1)]),label="")

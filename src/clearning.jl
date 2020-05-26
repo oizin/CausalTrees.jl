@@ -17,16 +17,12 @@ function group_mean(
 end
 
 """
-Evaluate potential splits on treatment effect
-
-Arguments
-
-x:
-w:
-y:
-min_leaf_size:
-
-
+Evaluate potential splits on treatment effect\n
+Arguments:\n
+- x:
+- w:
+- y:
+- min_leaf_size:
 """
 function evaluate_possible_splits(
     x                   :: Array{Float64,1},
@@ -35,7 +31,7 @@ function evaluate_possible_splits(
     min_leaf_size       :: Int
     )
 
-    oj = sortperm(x,rev=true)
+    oj = sortperm(x)
     yj = y[oj]
     wj = w[oj]
     n = length(w)
@@ -168,7 +164,6 @@ function learn_split!(
 end
 
 """
-learn_tree :
 learn a causal tree
 
 X: feature matrix
@@ -250,8 +245,9 @@ function learn_leaf_value(
 end
 
 """
-causal_tree :
-structure_p : the proportion of the data used in estimating the tree structure (i.e. nodes)
+Fit a causal tree\n
+Arguments:\n
+- structure_p : the proportion of the data used in estimating the tree structure (i.e. nodes)
 """
 function causal_tree(
     X                   :: Array{Float64,2},

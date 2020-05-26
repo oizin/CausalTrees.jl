@@ -1,6 +1,14 @@
 import Statistics
 import StatsBase
 
+
+function _sortperm(A)
+          tmp = [(@inbounds A[i],i) for i=1:length(A)]
+          sort!(tmp; alg=QuickSort)
+          [t[2] for t in tmp]
+end
+
+
 """
 compute_possible_splits
 
